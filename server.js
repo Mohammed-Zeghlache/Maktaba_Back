@@ -1,0 +1,133 @@
+// require('dotenv').config();
+// const express = require('express');
+// const cors = require('cors');
+// const path = require('path');
+
+// const app = express();
+
+// // Middleware
+// app.use(cors({
+//   origin: 'http://localhost:5173'
+// }));
+
+// // app.use(express.json());
+// // app.use(express.urlencoded({ extended: true }));
+
+
+// app.use(express.json({ limit: "50mb" }));
+// app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+
+// // Static files for uploads
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// // Add this before your routes
+// app.post('/test-login', async (req, res) => {
+//   const bcrypt = require('bcryptjs');
+//   const { email, password } = req.body;
+  
+//   // Check admins table
+//   const { rows } = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
+  
+//   if (rows.length === 0) {
+//     return res.json({ error: 'Admin not found' });
+//   }
+  
+//   const admin = rows[0];
+//   const match = await bcrypt.compare(password, admin.password_hash);
+  
+//   res.json({
+//     email: admin.email,
+//     password_hash: admin.password_hash,
+//     match: match,
+//     password_entered: password
+//   });
+// });
+
+// // Routes
+// app.use('/api/auth', require('./routes/authRoutes'));
+// app.use('/api/books', require('./routes/bookRoutes'));
+// app.use('/api/users', require('./routes/usersRoutes'));
+// app.use('/api/admin', require('./routes/adminRoutes'));
+
+// // Error handler
+// app.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(err.status || 500).json({
+//     success: false,
+//     message: err.message || 'Internal Server Error'
+//   });
+// });
+
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running on port ${PORT}`);
+// });
+
+
+
+
+
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const bcrypt = require('bcryptjs'); 
+const pool = require('./config/db'); 
+
+const app = express();
+
+
+app.use(cors({
+  origin: 'http://localhost:5173'
+}));
+
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.post('/test-login', async (req, res) => {
+  const { email, password } = req.body;
+  
+  try {
+    // Check admins table
+    const { rows } = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
+    
+    if (rows.length === 0) {
+      return res.json({ error: 'Admin not found' });
+    }
+    
+    const admin = rows[0];
+    const match = await bcrypt.compare(password, admin.password_hash);
+    
+    res.json({
+      email: admin.email,
+      password_hash: admin.password_hash,
+      match: match,
+      password_entered: password
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
+});
+
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/books', require('./routes/bookRoutes'));
+app.use('/api/users', require('./routes/usersRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
