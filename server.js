@@ -79,7 +79,7 @@ const app = express();
 
 
 app.use(cors({
-  origin: 'https://maktabat-etalib.netlify.app/'
+  origin: 'https://maktabat-etalib.netlify.app'
 }));
 
 app.use(express.json({ limit: "50mb" }));
