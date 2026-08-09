@@ -42,68 +42,96 @@ const db = require('../config/db');
 const Wishlist = {
   // Find all wishlisted books for a user
   async findByUser(userId) {
-    const { rows } = await db.query(
-      `SELECT b.*, 
-        json_agg(DISTINCT bi.image_url) FILTER (WHERE bi.image_url IS NOT NULL) as images
-       FROM wishlist w
-       JOIN books b ON w.book_id = b.id
-       LEFT JOIN book_images bi ON b.id = bi.book_id
-       WHERE w.user_id = $1 AND b.status = 'approved'
-       GROUP BY b.id
-       ORDER BY w.created_at DESC`,
-      [userId]
-    );
-    return rows;
+    try {
+      const { rows } = await db.query(
+        `SELECT b.*, 
+          COALESCE(
+            (SELECT json_agg(bi.image_url) 
+             FROM book_images bi 
+             WHERE bi.book_id = b.id),
+            '[]'::json
+          ) as images
+         FROM wishlist w
+         JOIN books b ON w.book_id = b.id
+         WHERE w.user_id = $1 AND b.status = 'approved'
+         ORDER BY w.created_at DESC`,
+        [userId]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error in Wishlist.findByUser:', error);
+      throw error;
+    }
   },
 
   // Check if a book is in user's wishlist
   async isWishlisted(userId, bookId) {
-    const { rows } = await db.query(
-      'SELECT id FROM wishlist WHERE user_id = $1 AND book_id = $2',
-      [userId, bookId]
-    );
-    return rows.length > 0;
+    try {
+      const { rows } = await db.query(
+        'SELECT id FROM wishlist WHERE user_id = $1 AND book_id = $2',
+        [userId, bookId]
+      );
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error in Wishlist.isWishlisted:', error);
+      return false;
+    }
   },
 
   // Toggle wishlist (add/remove)
   async toggle(userId, bookId) {
-    // Check if exists
-    const existing = await db.query(
-      'SELECT id FROM wishlist WHERE user_id = $1 AND book_id = $2',
-      [userId, bookId]
-    );
+    try {
+      // Check if exists
+      const existing = await db.query(
+        'SELECT id FROM wishlist WHERE user_id = $1 AND book_id = $2',
+        [userId, bookId]
+      );
 
-    if (existing.rows.length > 0) {
-      // Remove
-      await db.query(
-        'DELETE FROM wishlist WHERE user_id = $1 AND book_id = $2',
-        [userId, bookId]
-      );
-      return 'removed';
-    } else {
-      // Add
-      await db.query(
-        'INSERT INTO wishlist (user_id, book_id) VALUES ($1, $2)',
-        [userId, bookId]
-      );
-      return 'added';
+      if (existing.rows.length > 0) {
+        // Remove
+        await db.query(
+          'DELETE FROM wishlist WHERE user_id = $1 AND book_id = $2',
+          [userId, bookId]
+        );
+        return 'removed';
+      } else {
+        // Add
+        await db.query(
+          'INSERT INTO wishlist (user_id, book_id) VALUES ($1, $2)',
+          [userId, bookId]
+        );
+        return 'added';
+      }
+    } catch (error) {
+      console.error('Error in Wishlist.toggle:', error);
+      throw error;
     }
   },
 
   // Add to wishlist
   async add(userId, bookId) {
-    await db.query(
-      'INSERT INTO wishlist (user_id, book_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [userId, bookId]
-    );
+    try {
+      await db.query(
+        'INSERT INTO wishlist (user_id, book_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [userId, bookId]
+      );
+    } catch (error) {
+      console.error('Error in Wishlist.add:', error);
+      throw error;
+    }
   },
 
   // Remove from wishlist
   async remove(userId, bookId) {
-    await db.query(
-      'DELETE FROM wishlist WHERE user_id = $1 AND book_id = $2',
-      [userId, bookId]
-    );
+    try {
+      await db.query(
+        'DELETE FROM wishlist WHERE user_id = $1 AND book_id = $2',
+        [userId, bookId]
+      );
+    } catch (error) {
+      console.error('Error in Wishlist.remove:', error);
+      throw error;
+    }
   }
 };
 
