@@ -87,11 +87,14 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get("/", (req, res) => {
+  res.send("Backend is running!");
+});
+
 app.post('/test-login', async (req, res) => {
   const { email, password } = req.body;
   
   try {
-    // Check admins table
     const { rows } = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
     
     if (rows.length === 0) {
