@@ -268,95 +268,131 @@
 
 
 
-
 const Book = require('../models/Book');
 const Wishlist = require('../models/Wishlist');
 
 // ========================================================
-// GET /api/books/wishlist - Get user's wishlist
+// LIST - Get all books
+// ========================================================
+exports.list = async (req, res, next) => {
+  try {
+    const { major, university, year, exchange, search, city, sort, page, limit, semester } = req.query;
+    const filters = { major, university, year, exchange, search, city, sort, semester, status: 'approved' };
+    const data = await Book.findAll(filters, page, limit);
+    res.json(data);
+  } catch (err) { 
+    console.error('❌ Error in list:', err);
+    next(err); 
+  }
+};
+
+// ========================================================
+// CREATE - Create a new book
+// ========================================================
+exports.create = async (req, res, next) => {
+  try {
+    const b = req.body;
+    if (!b.majorKey || !b.universityKey || !b.yearKey || !b.semester || !b.conditionKey || !b.exchangeKey || !b.phone) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const book = await Book.create({ 
+      ...b, 
+      userId: req.user.id, 
+      status: 'pending' 
+    });
+    res.status(201).json(book);
+  } catch (err) { 
+    console.error('❌ Error in create:', err);
+    next(err); 
+  }
+};
+
+// ========================================================
+// UPDATE - Update a book
+// ========================================================
+exports.update = async (req, res, next) => {
+  try {
+    const existing = await Book.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Book not found' });
+    if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'Not your listing' });
+
+    const updated = await Book.update(req.params.id, { ...req.body, status: 'pending' });
+    res.json(updated);
+  } catch (err) { 
+    console.error('❌ Error in update:', err);
+    next(err); 
+  }
+};
+
+// ========================================================
+// REMOVE - Delete a book
+// ========================================================
+exports.remove = async (req, res, next) => {
+  try {
+    const existing = await Book.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Book not found' });
+    if (existing.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not your listing' });
+    }
+    await Book.delete(req.params.id);
+    res.json({ success: true });
+  } catch (err) { 
+    console.error('❌ Error in remove:', err);
+    next(err); 
+  }
+};
+
+// ========================================================
+// MY BOOKS - Get user's own books
+// ========================================================
+exports.myBooks = async (req, res, next) => {
+  try {
+    const books = await Book.findByUser(req.user.id);
+    res.json(books);
+  } catch (err) { 
+    console.error('❌ Error in myBooks:', err);
+    next(err); 
+  }
+};
+
+// ========================================================
+// GET WISHLIST - Get user's wishlist
 // ========================================================
 exports.getWishlist = async (req, res, next) => {
   try {
-    console.log('🔄 Fetching wishlist for user:', req.user.id);
     const books = await Wishlist.findByUser(req.user.id);
-    console.log(`📚 Found ${books.length} books in wishlist`);
     res.json(books);
-  } catch (err) {
+  } catch (err) { 
     console.error('❌ Error in getWishlist:', err);
-    next(err);
+    next(err); 
   }
 };
 
 // ========================================================
-// POST /api/books/wishlist/:id - Toggle wishlist (Add/Remove)
+// TOGGLE WISHLIST - Add/Remove from wishlist
 // ========================================================
 exports.toggleWishlist = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    const bookId = parseInt(req.params.id);
-
-    console.log(`🔄 Toggling wishlist for user ${userId}, book ${bookId}`);
-
-    if (!bookId || isNaN(bookId)) {
-      return res.status(400).json({ error: 'Invalid book ID' });
-    }
-
-    // Check if book exists
-    const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({ error: 'Book not found' });
-    }
-
-    const action = await Wishlist.toggle(userId, bookId);
-    console.log(`✅ Wishlist toggled: ${action}`);
-    
-    res.json({ 
-      success: true, 
-      action: action,
-      message: action === 'added' ? 'Added to wishlist' : 'Removed from wishlist'
-    });
-  } catch (err) {
+    const action = await Wishlist.toggle(req.user.id, req.params.id);
+    res.json({ action });
+  } catch (err) { 
     console.error('❌ Error in toggleWishlist:', err);
-    next(err);
+    next(err); 
   }
 };
 
 // ========================================================
-// GET /api/books/:id - Get single book with wishlist status
+// UPLOAD IMAGES - Upload book images
 // ========================================================
-exports.getOne = async (req, res, next) => {
+exports.uploadImages = async (req, res, next) => {
   try {
-    const bookId = parseInt(req.params.id);
-    
-    if (!bookId || isNaN(bookId)) {
-      return res.status(400).json({ error: "Invalid book ID" });
+    if (!req.files || !req.files.length) {
+      return res.status(400).json({ error: 'No files uploaded' });
     }
-
-    const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({ error: "Book not found" });
-    }
-
-    // Check if user is owner or admin
-    const isOwner = req.user && req.user.id === book.user_id;
-    const isAdmin = req.user && req.user.role === 'admin';
-
-    if (book.status !== "approved" && !isOwner && !isAdmin) {
-      return res.status(403).json({ error: "This book is not currently available" });
-    }
-
-    if (book.status === "approved") {
-      await Book.incrementViews(book.id);
-    }
-
-    // Check if book is in user's wishlist
-    let wishlisted = false;
-    if (req.user && req.user.id) {
-      wishlisted = await Wishlist.isWishlisted(req.user.id, book.id);
-    }
-
-    res.json({ ...book, wishlisted });
-  } catch (err) {
-    next(err);
+    const urls = req.files.map((f) => `/uploads/${f.filename}`);
+    res.json({ urls });
+  } catch (err) { 
+    console.error('❌ Error in uploadImages:', err);
+    next(err); 
   }
 };
