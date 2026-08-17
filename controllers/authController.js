@@ -27,8 +27,7 @@ exports.register = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Single login endpoint for both students and admins.
-// Admins are checked first since the admins table is small and disjoint from users.
+
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -44,7 +43,6 @@ exports.login = async (req, res, next) => {
         const { password_hash: _pw, ...safeAdmin } = admin;
         return res.json({ token, user: { ...safeAdmin, role: 'admin' } });
       }
-      // fall through to also allow the same email to exist as a normal user (rare, but harmless)
     }
 
     const user = await User.findByEmail(email);
