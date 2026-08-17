@@ -1,10 +1,6 @@
 const pool = require('../config/db');
 
-/**
- * Creates all tables if they don't already exist.
- * Called once on server startup (see server.js) and also from add-admin.js
- * so that script can run standalone before the server has ever started.
- */
+// balak ndirha fi sql query w nruniha //
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
