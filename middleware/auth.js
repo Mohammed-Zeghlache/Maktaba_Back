@@ -14,9 +14,7 @@ function auth(req, res, next) {
   }
 }
 
-// Attaches req.user if a valid token is present, but never blocks the request.
-// Used on routes that behave differently for guests vs. logged-in users
-// (e.g. GET /books/:id needs to know if the requester is the owner).
+
 function optionalAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -24,7 +22,6 @@ function optionalAuth(req, res, next) {
     try {
       req.user = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      // ignore invalid/expired token on optional routes
     }
   }
   next();
