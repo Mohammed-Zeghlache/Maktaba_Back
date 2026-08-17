@@ -1,7 +1,6 @@
 const Book = require('../models/Book');
 const User = require('../models/User');
 
-// GET /api/admin/stats
 exports.stats = async (req, res, next) => {
   try {
     const bookStats = await Book.stats();
@@ -23,7 +22,6 @@ exports.getUsers = async (req, res) => {
   res.json(users);
 };
 
-// GET /api/admin/books/pending
 exports.pendingBooks = async (req, res, next) => {
   try {
     const books = await Book.findPending();
@@ -49,7 +47,6 @@ exports.rejectBook = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// DELETE /api/admin/books/:id — bonus, not in the original endpoint list but handy for moderation
 exports.deleteBook = async (req, res, next) => {
   try {
     await Book.delete(req.params.id);
