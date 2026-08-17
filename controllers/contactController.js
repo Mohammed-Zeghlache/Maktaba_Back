@@ -1,8 +1,6 @@
 const Contact = require('../models/Contact');
 
-// ========================================================
-// POST /api/contact - Send contact message
-// ========================================================
+
 exports.sendMessage = async (req, res, next) => {
   try {
     console.log('📩 1. Contact request received');
@@ -10,16 +8,14 @@ exports.sendMessage = async (req, res, next) => {
 
     const { fullName, email, subject, message } = req.body;
 
-    // Validate required fields
     if (!fullName || !email || !subject || !message) {
-      console.log('❌ 3. Missing fields detected');
+      console.log(' 3. Missing fields detected');
       return res.status(400).json({ 
         success: false,
         error: 'All fields are required' 
       });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       console.log('❌ 4. Invalid email format:', email);
@@ -31,7 +27,6 @@ exports.sendMessage = async (req, res, next) => {
 
     console.log('✅ 5. Validation passed, saving to database...');
 
-    // Save to database
     const contact = await Contact.create({
       fullName,
       email,
@@ -58,9 +53,7 @@ exports.sendMessage = async (req, res, next) => {
   }
 };
 
-// ========================================================
-// GET /api/contact - Get all messages (Admin only)
-// ========================================================
+
 exports.getMessages = async (req, res, next) => {
   try {
     console.log('📩 Fetching all contact messages');
@@ -90,9 +83,7 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
-// ========================================================
-// GET /api/contact/:id - Get single message (Admin only)
-// ========================================================
+
 exports.getMessage = async (req, res, next) => {
   try {
     console.log(`📩 Fetching message ID: ${req.params.id}`);
@@ -128,9 +119,7 @@ exports.getMessage = async (req, res, next) => {
   }
 };
 
-// ========================================================
-// PUT /api/contact/:id/read - Mark as read (Admin only)
-// ========================================================
+
 exports.markAsRead = async (req, res, next) => {
   try {
     console.log(`📩 Marking message ${req.params.id} as read`);
@@ -167,9 +156,7 @@ exports.markAsRead = async (req, res, next) => {
   }
 };
 
-// ========================================================
-// DELETE /api/contact/:id - Delete message (Admin only)
-// ========================================================
+
 exports.deleteMessage = async (req, res, next) => {
   try {
     console.log(`📩 Deleting message ${req.params.id}`);
