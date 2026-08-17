@@ -1,6 +1,5 @@
 const User = require('../models/User');
 
-// GET /api/admin/users
 exports.list = async (req, res, next) => {
   try {
     const users = await User.findAll();
@@ -22,7 +21,6 @@ exports.ban = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// DELETE /api/admin/users/:id — bonus, not in the original endpoint list but handy for moderation
 exports.remove = async (req, res, next) => {
   try {
     await User.delete(req.params.id);
